@@ -2,6 +2,20 @@
 <html lang="en" dir="ltr">
 <script src='https://d3js.org/d3.v5.min.js'></script>
 <script src="https://unpkg.com/d3-simple-slider"></script>
+<style>
+div.annotation {
+  position: absolute; 
+  test-align: center;
+  width: 150px;
+  height: 50px;
+  padding: 3px;
+  font: 12px sans-serif;
+  background: #FCFF33;
+  border: 0px;
+  border-radius: 4px;
+  pointer-events: auto; 
+}
+</style>
  <head>
     <meta charset="utf-8">
     <title></title>
@@ -13,13 +27,11 @@
 	</div>
 
 	<div id = "introduction" class=info>
-    	<p>Electric vehicles (EVs) are fully electric and rely on batteries for their power. 
-        <br>There are plug-in hybrids that act like EVs but can also operate like gas-electric hybrids. 
+    	<p>Electric vehicles (<b>EVs</b>) or Battery electric vehicles (<b>BEV</b>) are fully electric and rely on batteries for their power. 
 		    <br>Electric motors are more efficient than gasoline or diesel engines and can provide cheaper operation per mile.
        	<br>The shift to EVs would lead to a 92% fall in greenhouse gases by 2050.
        	<br>
         <br>This visualization will show the sales of <b>EVs</b> in the last decade.
-        <br>Mainly <b>BEV</b> (Battery electric vehicle) and <b>PHEV</b> (Plug-in hybrid electric vehicle).
       </p>
 	</div>
 
@@ -45,7 +57,7 @@
     var chartmargin = {top: 100, right: 250, bottom: 75, left: 250},
         chartwidth = 1200 - chartmargin.left - chartmargin.right,
         chartheight = 500 - chartmargin.top - chartmargin.bottom;
-    var tooltipoffset_y = 100, tooltipoffset_x = 10
+    var tooltipoffset_y = 220, tooltipoffset_x = 10
 
     console.log(chartwidth)
     console.log(chartheight)
@@ -53,7 +65,7 @@
     // color circles and lines
     var color = {
       "World" : 'blue',
-      "USA" : 'orange',
+      "USA"   : 'orange',
       "China" : 'green'}
       
     // helper function - LEFT JOIN on one field
@@ -102,7 +114,7 @@
 
       ScaleX = d3.scaleLinear().domain([yearMin, yearMax]).range([0, chartwidth])
       ScaleY = d3.scaleLinear().domain([chgMin, chgMax]).range([chartheight, 0])
-      ScaleR = d3.scaleLinear().domain([0, 50000000]).range([1.5, 10])
+      ScaleR = d3.scaleLinear().domain([chgMin, chgMax]).range([5, 10])
 
       var plotyears = d3.map(datachart, function(d){return(d.year)}).keys();
 
@@ -178,32 +190,32 @@
          .attr('y',d3.event.pageY-tooltipoffset_y)
          .transition().duration(tooltipduration)
          .style('opacity',0.4) ;  
-       tooltip_co.attr('x',d3.event.pageX-tooltipoffset_x)
+       tooltip_region.attr('x',d3.event.pageX-tooltipoffset_x)
          .attr('y',d3.event.pageY-tooltipoffset_y)
-         .text(d.powertrain)     
+         .text("Region: " + d.region)     
          .transition().duration(tooltipduration)
          .style('opacity',0.9);  
         tooltip_yr.attr('x',d3.event.pageX-tooltipoffset_x)
          .attr('y',d3.event.pageY-tooltipoffset_y)
-         .text(d.year)     
+         .text("Year: " + d.year)     
          .transition().duration(tooltipduration)
          .style('opacity',0.9); 
-         tooltip_chg.attr('x',d3.event.pageX-tooltipoffset_x)
+       tooltip_sales.attr('x',d3.event.pageX-tooltipoffset_x)
          .attr('y',d3.event.pageY-tooltipoffset_y)
-         .text("Market Share Change: " + d3.format(".1%")(d.sales_value))     
+         .text("Sales: " + d3.format(".0f")(d.sales_value))     
          .transition().duration(tooltipduration)
          .style('opacity',0.9); 
       
        })
-       /*.on("mouseout", function(d, i) {
+       .on("mouseout", function(d, i) {
        d3.select(this).transition().duration(tooltipduration)
-         .attr('r',ScaleR(d.DWP)).style('opacity',0.9);
+         .attr('r',ScaleR(d.sales_value)).style('opacity',0.9);
        tooltip_rect.transition().duration(tooltipduration)
          .style('opacity',0.0)
          .transition().duration(0)
          .attr('x',0)
          .attr('y',0);  
-       tooltip_co.transition().duration(tooltipduration)
+       tooltip_region.transition().duration(tooltipduration)
          .style('opacity',0.0)
          .transition().duration(0)
          .attr('x',0)
@@ -213,19 +225,14 @@
          .transition().duration(0)
          .attr('x',0)
          .attr('y',0);  
-        tooltip_wp.transition().duration(tooltipduration)
-         .style('opacity',0.0)
-         .transition().duration(0)
-         .attr('x',0)
-         .attr('y',0); 
-         tooltip_chg.transition().duration(tooltipduration)
+        tooltip_sales.transition().duration(tooltipduration)
          .style('opacity',0.0)
          .transition().duration(0)
          .attr('x',0)
          .attr('y',0);  
          }) // end mouseout
       .transition().duration(500).delay(1200).ease(d3.easeCubicInOut)
-       .attr('r', function(d, i) {return ScaleR(d.DWP);});*/
+       .attr('r', function(d, i) {return ScaleR(d.sales_value);});
     ;} // end if
      else {
       var points = d3.select('body').select('#chart')
@@ -237,8 +244,8 @@
        .style('opacity',0.9)
        .attr("fill", function(d, i){ return color[d.region] })
       
-      /*.transition().duration(500).delay(1200).ease(d3.easeCubicInOut)
-       .attr('r', function(d, i) {return ScaleR(d.DWP);});*/
+      .transition().duration(500).delay(1200).ease(d3.easeCubicInOut)
+       .attr('r', function(d, i) {return ScaleR(d.sales_value);});
     ;} // end else
       
     // tool tip
@@ -251,22 +258,21 @@
         .attr('height',55)
         .attr("rx", 10)
         .attr("ry", 10)
-        .style('fill','#636466')
-        //.style("stroke", "#636466")
+        .style('fill','#adff2f')
         .style("opacity", 0.0)
     ;
         
-      var tooltip_co = d3.select('body').select('#chart')
+      var tooltip_region = d3.select('body').select('#chart')
        .append("g").attr("transform", "translate(0,0)")
        .append('text')
         .attr("font-size", 12)
         .attr("dy", "1.1em")
         .attr("dx", "0.2em")
-        .attr("fill", "#f8f8f8")
+        //.attr("fill", "#f8f8f8")
         .attr("font-family", "sans-serif")
         .attr("font-weight", 400)
         .style("opacity", 0.0)
-        .text("powertrain")
+        .text("region")
         ;
      var tooltip_yr = d3.select('body').select('#chart')
        .append("g").attr("transform", "translate(0,0)")
@@ -274,35 +280,23 @@
         .attr("font-size", 12)
         .attr("dy", "2.1em")
         .attr("dx", "0.2em")
-        .attr("fill", "#f8f8f8")
+        //.attr("fill", "#adff2f")
         .attr("font-family", "sans-serif")
         .attr("font-weight", 400)
         .style("opacity", 0.0)
         .text("year")
         ;
-     var tooltip_wp = d3.select('body').select('#chart')
-       .append("g").attr("transform", "translate(0,0)")
-       .append('text')
-        .attr("font-size", 12)
-        .attr("dy", "3.1em")
-        .attr("dx", "0.2em")
-        .attr("fill", '#f8f8f8')
-        .attr("font-family", "sans-serif")
-        .attr("font-weight", 400)
-        .style("opacity", 0.0)
-        .text("WP")
-        ;
-     var tooltip_chg = d3.select('body').select('#chart')
+     var tooltip_sales = d3.select('body').select('#chart')
        .append("g").attr("transform", "translate(0,0)")
        .append('text')
         .attr("font-size", 12)
         .attr("dy", "4.1em")
         .attr("dx", "0.2em")
-        .attr("fill", "#f8f8f8")
+        //.attr("fill", "#f8f8f8")
         .attr("font-family", "sans-serif")
         .attr("font-weight", 400)
         .style("opacity", 0.0)
-        .text("MktShareChg")
+        .text("Sales")
         ;  
 
     }
@@ -501,7 +495,7 @@
        .selectAll().data(datatooltip).enter().append('circle')
        .attr('cx',function(d, i) {return ScaleX(d.year);})
        .attr('cy', function(d, i) {return ScaleY(d.sales_value);})
-       .attr('r', function(d, i) {return ScaleR(d.DWP);})
+       .attr('r', function(d, i) {return ScaleR(d.sales_value);})
        .style('opacity',0.9)
        .raise()
        .attr("fill", "#FCFF33")
@@ -567,7 +561,7 @@
         .attr("font-family", "sans-serif")
         .attr("font-weight", 400)
         .style("opacity", 0.9)
-        .text("Written Premium: " + d3.format("$.1f")(datatooltip[0].DWP/1000000) + "B");
+        .text("Written Premium: " + d3.format("$.1f")(datatooltip[0].sales_value/1000000) + "B");
         
      d3.select('body').select('#chart')
        .append("g").attr("transform", "translate("+chartmargin.left+","+chartmargin.top+")")
