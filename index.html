@@ -5,15 +5,15 @@
  <head>
     <meta charset="utf-8">
     <title></title>
-    <link rel="stylesheet" type="text/css" href="css/mystyle.css">
+    <!-- <link rel="stylesheet" type="text/css" href="css/mystyle.css"> -->
 </head>
 <body onload='init()'>
 	<div id="myheader" style="padding: 3px; text-align: center; background: lightsteelblue; color: white; font-size: 20px;">
-    	<h1><i>Electric cars sales</i></h1>
+    	<h1><i>Electric vehicle sales</i></h1>
 	</div>
 
 	<div id = "introduction" class=info>
-    	<p>Electric cars or electric vehicles (EVs) are fully electric and rely on batteries for their power. 
+    	<p>Electric vehicles (EVs) are fully electric and rely on batteries for their power. 
         <br>There are plug-in hybrids that act like EVs but can also operate like gas-electric hybrids. 
 		    <br>Electric motors are more efficient than gasoline or diesel engines and can provide cheaper operation per mile.
        	<br>The shift to EVs would lead to a 92% fall in greenhouse gases by 2050.
@@ -22,5 +22,655 @@
         <br>Mainly <b>BEV</b> (Battery electric vehicle) and <b>PHEV</b> (Plug-in hybrid electric vehicle).
       </p>
 	</div>
+
+
+  <svg id="chart" width=1200 height=500>
+  </svg>
+  <svg id="slider" width=1200 height=50>
+  </svg>
+  <svg id="region" width=1200 height=50>
+  </svg>
+  <script>
+    async function init() {
+
+    data = await d3.csv("https://arunpg2.github.io/electric_cars/IEA-EV-dataEV_salesCarsHistorical.csv", function(d) { return {
+        //Year : +d.Year, Company : d.Company, Mkt_Share_Perc : +d.Mkt_Share_Perc, DWP : +d.DWP, CompanyType : d.CompanyType};
+        year : +d.year, powertrain : d.powertrain, sales_value : +d.value, region : d.region};
+      });
+    //console.log(data[0]);
+
+    // initialize variables
+    var inityearMax = 2021, inityearMin = 2011
+    var initregions = ["World", "USA", "China"]
+    var chartmargin = {top: 100, right: 250, bottom: 75, left: 250},
+        chartwidth = 1200 - chartmargin.left - chartmargin.right,
+        chartheight = 500 - chartmargin.top - chartmargin.bottom;
+    var tooltipoffset_y = 100, tooltipoffset_x = 10
+
+    console.log(chartwidth)
+    console.log(chartheight)
+
+    // color circles and lines
+    var color = {
+      "World" : 'blue',
+      "USA" : 'orange',
+      "China" : 'green'}
+      
+    // helper function - LEFT JOIN on one field
+    function leftjoin(rightTable, leftTable, rightFieldName, leftFieldName, select) {
+        var rightCnt = rightTable.length,
+            leftCnt = leftTable.length,
+            rightIndex = [],
+            result = [];
+        for (var idx = 0; idx < rightCnt; idx++) { 
+            var row = rightTable[idx];
+            rightIndex[row[rightFieldName]] = row; 
+        }
+        for (var idx = 0; idx < leftCnt; idx++) { 
+            var leftresult = leftTable[idx];
+            var rightresult = rightIndex[leftresult[leftFieldName]]; 
+            result.push(select(leftresult, rightresult)); 
+        }
+        return result;
+    };
+
+
+    // Function to display chart
+
+    function displayChart(yearMin, yearMax, regions, enableTooltip) {
+      // Prep data for displaying on chart
+
+      datafilter = data.filter(function(d){ return (d.year >= yearMin && d.year <= yearMax && regions.indexOf(d.region) >= 0 && d.powertrain == "BEV") });
+
+      dataminyear = data.filter(function(d){ return d.year == yearMin});
+
+      var datachart = leftjoin(dataminyear, datafilter, "powertrain", "powertrain", function(main, min) {
+          return {
+              year: main.year,
+              powertrain: main.powertrain,
+              sales_value: main.sales_value,
+              region: main.region
+          };
+      });
+
+      //console.log(datachart[0].year)
+
+      //console.log(datachart.filter(function(d){ return d.powertrain == "State Farm"}));
+
+      var chgMax = d3.max(datachart, function(d) { return d.sales_value; }), 
+          chgMin = d3.min(datachart, function(d) { return d.sales_value; })
+
+      ScaleX = d3.scaleLinear().domain([yearMin, yearMax]).range([0, chartwidth])
+      ScaleY = d3.scaleLinear().domain([chgMin, chgMax]).range([chartheight, 0])
+      ScaleR = d3.scaleLinear().domain([0, 50000000]).range([1.5, 10])
+
+      var plotyears = d3.map(datachart, function(d){return(d.year)}).keys();
+
+      var datagroup = d3.nest().key(function(d) { return d.region;}).entries(datachart);
+
+     // clear svg
+     d3.selectAll("#chart > *").remove();
+
+      // add axes
+      d3.select('#chart')
+        .append("g").attr("transform", "translate("+chartmargin.left+","+chartmargin.top+")")
+        .call(d3.axisLeft(ScaleY).tickFormat(d3.format("d")));
+      d3.select('#chart')
+        .append("g").attr("transform", "translate("+chartmargin.left+","+(chartmargin.top+chartheight)+")")
+        .call(d3.axisBottom(ScaleX).tickValues(plotyears).tickFormat(d3.format(".4r")));  
+
+      // y axis label
+        d3.select('#chart')
+          .append("g").attr("transform", "translate("+chartmargin.left+","+chartmargin.top+")")
+          .append("text")
+            .attr("transform", "rotate(-90)")
+            .attr("y", -100)
+            .attr("x",-chartheight/2)
+            .attr("dy", "1em")
+            .style("text-anchor", "middle")
+            .text("Electric Vehicle Sales");   
+      // x axis label
+        d3.select('#chart')
+          .append("g").attr("transform", "translate("+chartmargin.left+","+chartmargin.top+")")
+          .append("text")
+            .attr("y", chartheight+chartmargin.bottom/4)
+            .attr("x", chartwidth/2)
+            .attr("dy", "1em")
+            .style("text-anchor", "middle")
+            .text("Year");         
+
+      // plot lines
+      d3.select('body').select('#chart')
+       .append("g").attr("transform", "translate("+chartmargin.left+","+chartmargin.top+")")
+       .selectAll().data(datagroup).enter().append('path')
+       .attr("fill", "none")
+       .attr("stroke", function(d){ return color[d.values[0].region] })
+       .attr("stroke-width", 2)
+       .style('opacity',0.9)
+       .attr('d',function(d){
+           return d3.line()
+             .x(function(d) {return ScaleX(d.year);})
+             .y(function(d) {return ScaleY(d.sales_value);})
+             (d.values)
+             })
+       .attr("stroke-dashoffset", chartwidth*3)
+       .attr("stroke-dasharray", chartwidth*3)
+       .transition().duration(2000).delay(200).ease(d3.easeCubicInOut)
+       //.attr("stroke", function(d){ return color[d.values[0].region] }) 
+       .attr("stroke-dashoffset", 0)
+      ;  
+        
+      var tooltipduration = 50  
+      // plot dots
+      if (enableTooltip == "on"){
+      var points = d3.select('body').select('#chart')
+       .append("g").attr("transform", "translate("+chartmargin.left+","+chartmargin.top+")")
+       .selectAll().data(datachart).enter().append('circle')
+       .attr('cx',function(d, i) {return ScaleX(d.year);})
+       .attr('cy', function(d, i) {return ScaleY(d.sales_value);})
+       .attr('r', 0)
+       .style('opacity',0.9)
+       .attr("fill", function(d, i){ return color[d.region] })
+      .on("mouseover", function(d, i) {
+       d3.select(this).transition().duration(tooltipduration)
+         .attr('r',11).style('opacity',1);
+       tooltip_rect.attr('x',d3.event.pageX-tooltipoffset_x)
+         .attr('y',d3.event.pageY-tooltipoffset_y)
+         .transition().duration(tooltipduration)
+         .style('opacity',0.4) ;  
+       tooltip_co.attr('x',d3.event.pageX-tooltipoffset_x)
+         .attr('y',d3.event.pageY-tooltipoffset_y)
+         .text(d.powertrain)     
+         .transition().duration(tooltipduration)
+         .style('opacity',0.9);  
+        tooltip_yr.attr('x',d3.event.pageX-tooltipoffset_x)
+         .attr('y',d3.event.pageY-tooltipoffset_y)
+         .text(d.year)     
+         .transition().duration(tooltipduration)
+         .style('opacity',0.9); 
+         tooltip_chg.attr('x',d3.event.pageX-tooltipoffset_x)
+         .attr('y',d3.event.pageY-tooltipoffset_y)
+         .text("Market Share Change: " + d3.format(".1%")(d.sales_value))     
+         .transition().duration(tooltipduration)
+         .style('opacity',0.9); 
+      
+       })
+       /*.on("mouseout", function(d, i) {
+       d3.select(this).transition().duration(tooltipduration)
+         .attr('r',ScaleR(d.DWP)).style('opacity',0.9);
+       tooltip_rect.transition().duration(tooltipduration)
+         .style('opacity',0.0)
+         .transition().duration(0)
+         .attr('x',0)
+         .attr('y',0);  
+       tooltip_co.transition().duration(tooltipduration)
+         .style('opacity',0.0)
+         .transition().duration(0)
+         .attr('x',0)
+         .attr('y',0);   
+        tooltip_yr.transition().duration(tooltipduration)
+         .style('opacity',0.0)
+         .transition().duration(0)
+         .attr('x',0)
+         .attr('y',0);  
+        tooltip_wp.transition().duration(tooltipduration)
+         .style('opacity',0.0)
+         .transition().duration(0)
+         .attr('x',0)
+         .attr('y',0); 
+         tooltip_chg.transition().duration(tooltipduration)
+         .style('opacity',0.0)
+         .transition().duration(0)
+         .attr('x',0)
+         .attr('y',0);  
+         }) // end mouseout
+      .transition().duration(500).delay(1200).ease(d3.easeCubicInOut)
+       .attr('r', function(d, i) {return ScaleR(d.DWP);});*/
+    ;} // end if
+     else {
+      var points = d3.select('body').select('#chart')
+       .append("g").attr("transform", "translate("+chartmargin.left+","+chartmargin.top+")")
+       .selectAll().data(datachart).enter().append('circle')
+       .attr('cx',function(d, i) {return ScaleX(d.year);})
+       .attr('cy', function(d, i) {return ScaleY(d.sales_value);})
+       .attr('r', 0)
+       .style('opacity',0.9)
+       .attr("fill", function(d, i){ return color[d.region] })
+      
+      /*.transition().duration(500).delay(1200).ease(d3.easeCubicInOut)
+       .attr('r', function(d, i) {return ScaleR(d.DWP);});*/
+    ;} // end else
+      
+    // tool tip
+      var tooltip_rect =  d3.select('body').select('#chart')
+       .append("g").attr("transform", "translate(0,0)")
+        .append('rect')
+        .attr('x',0)
+        .attr('y',0)
+        .attr('width',160)
+        .attr('height',55)
+        .attr("rx", 10)
+        .attr("ry", 10)
+        .style('fill','#636466')
+        //.style("stroke", "#636466")
+        .style("opacity", 0.0)
+    ;
+        
+      var tooltip_co = d3.select('body').select('#chart')
+       .append("g").attr("transform", "translate(0,0)")
+       .append('text')
+        .attr("font-size", 12)
+        .attr("dy", "1.1em")
+        .attr("dx", "0.2em")
+        .attr("fill", "#f8f8f8")
+        .attr("font-family", "sans-serif")
+        .attr("font-weight", 400)
+        .style("opacity", 0.0)
+        .text("powertrain")
+        ;
+     var tooltip_yr = d3.select('body').select('#chart')
+       .append("g").attr("transform", "translate(0,0)")
+       .append('text')
+        .attr("font-size", 12)
+        .attr("dy", "2.1em")
+        .attr("dx", "0.2em")
+        .attr("fill", "#f8f8f8")
+        .attr("font-family", "sans-serif")
+        .attr("font-weight", 400)
+        .style("opacity", 0.0)
+        .text("year")
+        ;
+     var tooltip_wp = d3.select('body').select('#chart')
+       .append("g").attr("transform", "translate(0,0)")
+       .append('text')
+        .attr("font-size", 12)
+        .attr("dy", "3.1em")
+        .attr("dx", "0.2em")
+        .attr("fill", '#f8f8f8')
+        .attr("font-family", "sans-serif")
+        .attr("font-weight", 400)
+        .style("opacity", 0.0)
+        .text("WP")
+        ;
+     var tooltip_chg = d3.select('body').select('#chart')
+       .append("g").attr("transform", "translate(0,0)")
+       .append('text')
+        .attr("font-size", 12)
+        .attr("dy", "4.1em")
+        .attr("dx", "0.2em")
+        .attr("fill", "#f8f8f8")
+        .attr("font-family", "sans-serif")
+        .attr("font-weight", 400)
+        .style("opacity", 0.0)
+        .text("MktShareChg")
+        ;  
+
+    }
+
+    displayChart(inityearMin, inityearMax, initregions, "off")
+
+    // year Slider
+    var slideryear = d3
+      .sliderBottom()
+      .min(2011)
+      .max(2021)
+      .width(chartwidth)
+      .tickFormat(d3.format('.4r'))
+      .step(1)
+      .ticks(21)
+      .default([2011, 2021])
+      .fill('#09349e');
+
+      d3.select('#slider')
+        .append("g").attr("transform", "translate("+chartmargin.left+",10)")
+        .call(slideryear);
+
+    // powertrain Type selector
+    var CaptiveStatus = ["Display", "Hide"]
+    var DirectStatus = ["Display", "Hide"]
+    var IndependentStatus = ["Display", "Hide"]
+    var CaptiveColor = ['blue', 'white']
+    var DirectColor = ['orange', 'white']
+    var IndependentColor = ['green', 'white']
+
+
+    function updateregions(){
+     initregions = []
+     if (CaptiveStatus[0] == "Display") {initregions.push("World")}
+     if (DirectStatus[0] == "Display") {initregions.push("USA")}
+     if (IndependentStatus[0] == "Display") {initregions.push("China")}
+    }
+
+    var Captive =  d3.select('#region')
+        .append("g").attr("transform", "translate("+chartmargin.left+",0)")
+        .append('rect')
+        .attr('x',0)
+        .attr('y',0)
+        .attr('width',chartwidth/3)
+        .attr('height',50)
+        .attr("rx", 10)
+        .attr("ry", 10)
+        .style('fill','blue')
+        .style("stroke", 'blue')
+        .style("stroke-width", 5)
+        .text("test")
+        ;
+
+    var CaptiveText = d3.select('#region')
+        .append("g").attr("transform", "translate("+chartmargin.left+",0)")
+        .append('text')
+        .attr('x',chartwidth/6)
+        .attr('y',25)
+        .attr('alignment-baseline',"middle")
+        .attr('text-anchor', "middle")
+        .attr("font-size", 25)
+        .attr("stroke", '#00000')
+        .attr("fill", "#00000")
+        .text("World")
+        ;
+        
+    var Direct =  d3.select('#region')
+        .append("g").attr("transform", "translate("+(chartmargin.left)+",0)")
+        .append('rect')
+        .attr('x',+chartwidth/3+5)
+        .attr('y',0)
+        .attr('width',chartwidth/3)
+        .attr('height',50)
+        .attr("rx", 10)
+        .attr("ry", 10)
+        .style('fill','orange')
+        .style("stroke", 'orange')
+        .style("stroke-width", 5)
+        .text("test")
+    ;
+
+    var DirectText = d3.select('#region')
+        .append("g").attr("transform", "translate("+chartmargin.left+",0)")
+        .append('text')
+        .attr('x',+chartwidth/3+chartwidth/6+5)
+        .attr('y',25)
+        .attr('alignment-baseline',"middle")
+        .attr('text-anchor', "middle")
+        .attr("font-size", 25)
+        .attr("stroke", '#00000')
+        .attr("fill", "#00000")
+        .text("USA")
+        ;
+
+    var Independent =  d3.select('#region')
+        .append("g").attr("transform", "translate("+(chartmargin.left)+",0)")
+        .append('rect')
+        .attr('x',(chartwidth/3+5)*2)
+        .attr('y',0)
+        .attr('width',chartwidth/3)
+        .attr('height',50)
+        .attr("rx", 10)
+        .attr("ry", 10)
+        .style('fill','green')
+        .style("stroke", 'green')
+        .style("stroke-width", 5)
+        .text("test")
+        ;
+
+    var IndependentText = d3.select('#region')
+        .append("g").attr("transform", "translate("+chartmargin.left+",0)")
+        .append('text')
+        .attr('x',(chartwidth/3+5)*2+chartwidth/6)
+        .attr('y',25)
+        .attr('alignment-baseline',"middle")
+        .attr('text-anchor', "middle")
+        .attr("font-size", 25)
+        .attr("stroke", '#00000')
+        .attr("fill", "#00000")
+        .text("China")
+        ;
+
+    // Scenes
+    var scene = 0
+    var annottext = {
+    0: "Welcome! Click through this handy guide to help you navigate this chart." + "<br/>" + "<br/>" +"Each line on this chart represents a single auto insurance powertrain.  Each point marks the change in market share from the first year displayed to the year represented by the point."+ "<br/>" + "<br/>" +"Lets find out which powertrain grew the fastest since 2010." + "<br/>" + "<br/>" + "[CLICK TO ADVANCE TO NEXT STEP]",
+    1: "Use the sliders below to select the beginning year as 2010 and, if you choose, select an ending year to measure the change in market share."+ "<br/>" + "[CLICK TO ADVANCE TO NEXT STEP]",
+    2: "Click the respective boxes above to include or exclude companies by distribution model.  A color-filled box means companies with that distribution model are displayed.  In this example, we chose to remove Independent companies."+ "<br/>" + "<br/>" +"[CLICK TO ADVANCE TO NEXT STEP]",
+    3: "Hover mouse over points to drill into the details!"+ "<br/>" + "<br/>" + "Here we learn how many percentage points Berkshire Hathaway (aka GEICO) has grown its market share from 2010 to 2016, and its total written premium in 2016." +  "<br/>" + "<br/>" +"[CLICK TO EXIT GUIDE AND EXPLORE ON YOUR OWN!]",
+    4: "All Done"}
+    var annotXpos = {
+    0: 275,
+    1: 250,
+    2: 300,
+    3: 350,
+    4: 0}
+    var annotYpos = {
+    0: 100,
+    1: 475,
+    2: 640,
+    3: 100,
+    4: 0} 
+    var annotwidth = {
+    0: 350,
+    1: 700,
+    2: 600,
+    3: 350,
+    4: 0}
+    var annotheight = {
+    0: 140,
+    1: 40,
+    2: 70,
+    3: 100,
+    4: 0}
+
+    var sceneannotation = d3.select("body").append("div") 
+        .attr("class", "annotation")
+        .style("opacity", 0.8)
+        .style("width", annotwidth[scene] + "px")
+      .style("height", annotheight[scene] + "px")
+        .style("left", annotXpos[scene] + "px")   
+        .style("top", annotYpos[scene] + "px")
+        .html(annottext[scene])
+        .on('click', function(event){
+        nextscene();})
+        ;    
+        
+     // plot sample for tooltip scene
+    function tooltipscene(yearMin, yearMax, regions) {
+
+      datafilter = data.filter(function(d){ return (d.year >= yearMin && d.year <= yearMax && regions.indexOf(d.region) >= 0) });
+
+      dataminyear = data.filter(function(d){ return d.year == yearMin});
+
+      var datachart = leftjoin(dataminyear, datafilter, "powertrain", "powertrain", function(main, min) {
+          return {
+              year: main.year,
+              powertrain: main.powertrain,
+              sales_value: main.sales_value,
+              region: main.region
+          };
+      });
+
+      //console.log(datachart.filter(function(d){ return d.powertrain == "State Farm"}));
+
+      var chgMax = d3.max(datachart, function(d) { return d.sales_value; }), 
+          chgMin = d3.min(datachart, function(d) { return d.sales_value; })
+
+      ScaleX = d3.scaleLinear().domain([yearMin, yearMax]).range([0, chartwidth])
+      ScaleY = d3.scaleLinear().domain([chgMin/100-0.003, chgMax/100]).range([chartheight, 0])
+
+     datatooltip = datachart.filter(function(d){ return (d.year == 2016 && d.region == 'World') });
+     
+      d3.select('body').select('#chart')
+       .append("g").attr("transform", "translate("+chartmargin.left+","+chartmargin.top+")")
+       .selectAll().data(datatooltip).enter().append('circle')
+       .attr('cx',function(d, i) {return ScaleX(d.year);})
+       .attr('cy', function(d, i) {return ScaleY(d.sales_value);})
+       .attr('r', function(d, i) {return ScaleR(d.DWP);})
+       .style('opacity',0.9)
+       .raise()
+       .attr("fill", "#FCFF33")
+      .transition().duration(400)
+       .attr('r', 11).style('opacity',1);
+       
+       //console.log(datatooltip[0].sales_value)
+       
+       tooltipoffset_adj = 25
+       
+       // tool tip
+      d3.select('body').select('#chart')
+       .append("g").attr("transform", "translate("+chartmargin.left+","+chartmargin.top+")")
+        .append('rect')
+        .attr('x',ScaleX(datatooltip[0].year))
+        .attr('y',ScaleY(datatooltip[0].sales_value)-tooltipoffset_y+tooltipoffset_adj)
+        .attr('width',160)
+        .attr('height',55)
+        .attr("rx", 10)
+        .attr("ry", 10)
+        .style('fill','#636466')
+        //.style("stroke", "#636466")
+        .style("opacity", 0.4);
+        
+       d3.select('body').select('#chart')
+       .append("g").attr("transform", "translate("+chartmargin.left+","+chartmargin.top+")")
+       .append('text')
+        .attr("font-size", 12)
+        .attr('x',ScaleX(datatooltip[0].year))
+        .attr('y',ScaleY(datatooltip[0].sales_value)-tooltipoffset_y+tooltipoffset_adj)
+        .attr("dy", "1.1em")
+        .attr("dx", "0.2em")
+        .attr("fill", "#f8f8f8")
+        .attr("font-family", "sans-serif")
+        .attr("font-weight", 400)
+        .style('opacity',0.9)
+        .raise()
+        .text(datatooltip[0].powertrain)
+        
+     d3.select('body').select('#chart')
+       .append("g").attr("transform", "translate("+chartmargin.left+","+chartmargin.top+")")
+       .append('text')
+        .attr("font-size", 12)
+        .attr('x',ScaleX(datatooltip[0].year))
+        .attr('y',ScaleY(datatooltip[0].sales_value)-tooltipoffset_y+tooltipoffset_adj)
+        .attr("dy", "2.1em")
+        .attr("dx", "0.2em")
+        .attr("fill", "#f8f8f8")
+        .attr("font-family", "sans-serif")
+        .attr("font-weight", 400)
+        .style("opacity", 0.9)
+        .text(datatooltip[0].year);
+        
+     d3.select('body').select('#chart')
+       .append("g").attr("transform", "translate("+chartmargin.left+","+chartmargin.top+")")
+       .append('text')
+        .attr("font-size", 12)
+        .attr('x',ScaleX(datatooltip[0].year))
+        .attr('y',ScaleY(datatooltip[0].sales_value)-tooltipoffset_y+tooltipoffset_adj)
+        .attr("dy", "3.1em")
+        .attr("dx", "0.2em")
+        .attr("fill", '#f8f8f8')
+        .attr("font-family", "sans-serif")
+        .attr("font-weight", 400)
+        .style("opacity", 0.9)
+        .text("Written Premium: " + d3.format("$.1f")(datatooltip[0].DWP/1000000) + "B");
+        
+     d3.select('body').select('#chart')
+       .append("g").attr("transform", "translate("+chartmargin.left+","+chartmargin.top+")")
+       .append('text')
+        .attr("font-size", 12)
+        .attr('x',ScaleX(datatooltip[0].year))
+        .attr('y',ScaleY(datatooltip[0].sales_value)-tooltipoffset_y+tooltipoffset_adj)
+        .attr("dy", "4.1em")
+        .attr("dx", "0.2em")
+        .attr("fill", "#f8f8f8")
+        .attr("font-family", "sans-serif")
+        .attr("font-weight", 400)
+        .style("opacity", 0.9)
+        .text("Market Share Change: " + d3.format(".1%")(datatooltip[0].sales_value));  
+       
+    }
+
+
+        
+    //sceneannotation.on('click', function(event){
+    //    sceneannotation.html("test");});
+
+    function nextscene(){
+     scene = scene + 1
+
+     sceneannotation.style("width", annotwidth[scene] + "px")
+        .style("height", annotheight[scene] + "px")
+        .style("left", annotXpos[scene] + "px")   
+        .style("top", annotYpos[scene] + "px")
+        .html(annottext[scene])
+
+     
+     if (scene == 1){slideryear.value([2010, 2018])
+            //.on('onchange', (val) => {d3.select(this).value([2010, 2018]);});
+      displayChart(2010, 2018, initregions, "off")
+         ;}
+     if (scene == 2){
+       IndependentStatus = [IndependentStatus[1], IndependentStatus[0]]
+       IndependentColor = [IndependentColor[1], IndependentColor[0]]
+       Independent.style("fill",IndependentColor[0])
+       updateregions()
+       displayChart(inityearMin, inityearMax, initregions, "off");}
+     if (scene == 3){tooltipscene(inityearMin, inityearMax, initregions);}
+     if (scene == 4){
+       sceneannotation.style("opacity", 0)
+       slideryear.value([2011, 2021])
+       IndependentStatus = [IndependentStatus[1], IndependentStatus[0]]
+       IndependentColor = [IndependentColor[1], IndependentColor[0]]
+       Independent.style("fill",IndependentColor[0])
+       updateregions()
+       slideryear.on('onchange', (val) => {
+        inityearMax = val[1], inityearMin = val[0]
+        displayChart(inityearMin, inityearMax, initregions, "on"); })
+       Captive.on('click', function() {
+          CaptiveStatus = [CaptiveStatus[1], CaptiveStatus[0]]
+          CaptiveColor = [CaptiveColor[1], CaptiveColor[0]]
+          d3.select(this).style("fill",CaptiveColor[0])
+          updateregions()
+          displayChart(inityearMin, inityearMax, initregions, "on")
+        ; })
+       CaptiveText.on('click', function() {
+          CaptiveStatus = [CaptiveStatus[1], CaptiveStatus[0]]
+          CaptiveColor = [CaptiveColor[1], CaptiveColor[0]]
+          Captive.style("fill",CaptiveColor[0])
+          updateregions()
+          displayChart(inityearMin, inityearMax, initregions, "on")
+        ; })
+       Direct.on('click', function() {
+          DirectStatus = [DirectStatus[1], DirectStatus[0]]
+          DirectColor = [DirectColor[1], DirectColor[0]]
+          d3.select(this).style("fill",DirectColor[0])
+          updateregions()
+          displayChart(inityearMin, inityearMax, initregions, "on")
+        ; })
+       DirectText.on('click', function() {
+          DirectStatus = [DirectStatus[1], DirectStatus[0]]
+          DirectColor = [DirectColor[1], DirectColor[0]]
+          Direct.style("fill",DirectColor[0])
+          updateregions()
+          displayChart(inityearMin, inityearMax, initregions, "on")
+        ; })
+       Independent.on('click', function() {
+          IndependentStatus = [IndependentStatus[1], IndependentStatus[0]]
+          IndependentColor = [IndependentColor[1], IndependentColor[0]]
+          d3.select(this).style("fill",IndependentColor[0])
+          updateregions()
+          displayChart(inityearMin, inityearMax, initregions, "on")
+        ; })
+       IndependentText.on('click', function() {
+          IndependentStatus = [IndependentStatus[1], IndependentStatus[0]]
+          IndependentColor = [IndependentColor[1], IndependentColor[0]]
+          Independent.style("fill",IndependentColor[0])
+          updateregions()
+          displayChart(inityearMin, inityearMax, initregions, "on")
+        ; })
+       displayChart(inityearMin, inityearMax, initregions, "on")
+     
+     ;}
+    ; }
+
+
+    }
+
+  </script>
 </body>
 </html>
