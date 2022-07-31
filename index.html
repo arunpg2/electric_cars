@@ -2,6 +2,7 @@
 <html lang="en" dir="ltr">
 <script src='https://d3js.org/d3.v5.min.js'></script>
 <script src="https://unpkg.com/d3-simple-slider"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3-annotation/2.5.1/d3-annotation.min.js"></script>
 <style>
 div.annotation {
   position: absolute; 
@@ -36,17 +37,16 @@ div.annotation {
 	</div>
 
 
-  <svg id="chart" width=1200 height=500>
+  <svg id="region" width=1500 height=50>
   </svg>
-  <svg id="slider" width=1200 height=50>
+  <svg id="chart" width=1500 height=500>
   </svg>
-  <svg id="region" width=1200 height=50>
+  <svg id="slider" width=1500 height=50>
   </svg>
   <script>
     async function init() {
 
     data = await d3.csv("https://arunpg2.github.io/electric_cars/IEA-EV-dataEV_salesCarsHistorical.csv", function(d) { return {
-        //Year : +d.Year, Company : d.Company, Mkt_Share_Perc : +d.Mkt_Share_Perc, DWP : +d.DWP, CompanyType : d.CompanyType};
         year : +d.year, powertrain : d.powertrain, sales_value : +d.value, region : d.region};
       });
     //console.log(data[0]);
@@ -57,7 +57,7 @@ div.annotation {
     var chartmargin = {top: 100, right: 250, bottom: 75, left: 250},
         chartwidth = 1200 - chartmargin.left - chartmargin.right,
         chartheight = 500 - chartmargin.top - chartmargin.bottom;
-    var tooltipoffset_y = 220, tooltipoffset_x = 10
+    var tooltipoffset_y = 354, tooltipoffset_x = 10
 
     console.log(chartwidth)
     console.log(chartheight)
@@ -104,10 +104,6 @@ div.annotation {
               region: main.region
           };
       });
-
-      //console.log(datachart[0].year)
-
-      //console.log(datachart.filter(function(d){ return d.powertrain == "State Farm"}));
 
       var chgMax = d3.max(datachart, function(d) { return d.sales_value; }), 
           chgMin = d3.min(datachart, function(d) { return d.sales_value; })
@@ -255,7 +251,7 @@ div.annotation {
         .attr('x',0)
         .attr('y',0)
         .attr('width',160)
-        .attr('height',55)
+        .attr('height',45)
         .attr("rx", 10)
         .attr("ry", 10)
         .style('fill','#adff2f')
@@ -268,7 +264,6 @@ div.annotation {
         .attr("font-size", 12)
         .attr("dy", "1.1em")
         .attr("dx", "0.2em")
-        //.attr("fill", "#f8f8f8")
         .attr("font-family", "sans-serif")
         .attr("font-weight", 400)
         .style("opacity", 0.0)
@@ -280,7 +275,6 @@ div.annotation {
         .attr("font-size", 12)
         .attr("dy", "2.1em")
         .attr("dx", "0.2em")
-        //.attr("fill", "#adff2f")
         .attr("font-family", "sans-serif")
         .attr("font-weight", 400)
         .style("opacity", 0.0)
@@ -290,9 +284,8 @@ div.annotation {
        .append("g").attr("transform", "translate(0,0)")
        .append('text')
         .attr("font-size", 12)
-        .attr("dy", "4.1em")
+        .attr("dy", "3.1em")
         .attr("dx", "0.2em")
-        //.attr("fill", "#f8f8f8")
         .attr("font-family", "sans-serif")
         .attr("font-weight", 400)
         .style("opacity", 0.0)
@@ -301,7 +294,7 @@ div.annotation {
 
     }
 
-    displayChart(inityearMin, inityearMax, initregions, "off")
+    displayChart(inityearMin, inityearMax, initregions, "on")
 
     // year Slider
     var slideryear = d3
@@ -311,7 +304,7 @@ div.annotation {
       .width(chartwidth)
       .tickFormat(d3.format('.4r'))
       .step(1)
-      .ticks(21)
+      .ticks(11)
       .default([2011, 2021])
       .fill('#09349e');
 
@@ -320,22 +313,22 @@ div.annotation {
         .call(slideryear);
 
     // powertrain Type selector
-    var CaptiveStatus = ["Display", "Hide"]
-    var DirectStatus = ["Display", "Hide"]
-    var IndependentStatus = ["Display", "Hide"]
-    var CaptiveColor = ['blue', 'white']
-    var DirectColor = ['orange', 'white']
-    var IndependentColor = ['green', 'white']
+    var WorldStatus = ["Display", "Hide"]
+    var USAStatus = ["Display", "Hide"]
+    var ChinaStatus = ["Display", "Hide"]
+    var WorldColor = ['blue', 'white']
+    var USAColor = ['orange', 'white']
+    var ChinaColor = ['green', 'white']
 
 
     function updateregions(){
      initregions = []
-     if (CaptiveStatus[0] == "Display") {initregions.push("World")}
-     if (DirectStatus[0] == "Display") {initregions.push("USA")}
-     if (IndependentStatus[0] == "Display") {initregions.push("China")}
+     if (WorldStatus[0] == "Display") {initregions.push("World")}
+     if (USAStatus[0] == "Display") {initregions.push("USA")}
+     if (ChinaStatus[0] == "Display") {initregions.push("China")}
     }
 
-    var Captive =  d3.select('#region')
+    var World =  d3.select('#region')
         .append("g").attr("transform", "translate("+chartmargin.left+",0)")
         .append('rect')
         .attr('x',0)
@@ -350,7 +343,7 @@ div.annotation {
         .text("test")
         ;
 
-    var CaptiveText = d3.select('#region')
+    var WorldText = d3.select('#region')
         .append("g").attr("transform", "translate("+chartmargin.left+",0)")
         .append('text')
         .attr('x',chartwidth/6)
@@ -363,7 +356,7 @@ div.annotation {
         .text("World")
         ;
         
-    var Direct =  d3.select('#region')
+    var USA =  d3.select('#region')
         .append("g").attr("transform", "translate("+(chartmargin.left)+",0)")
         .append('rect')
         .attr('x',+chartwidth/3+5)
@@ -378,7 +371,7 @@ div.annotation {
         .text("test")
     ;
 
-    var DirectText = d3.select('#region')
+    var USAText = d3.select('#region')
         .append("g").attr("transform", "translate("+chartmargin.left+",0)")
         .append('text')
         .attr('x',+chartwidth/3+chartwidth/6+5)
@@ -391,7 +384,7 @@ div.annotation {
         .text("USA")
         ;
 
-    var Independent =  d3.select('#region')
+    var China =  d3.select('#region')
         .append("g").attr("transform", "translate("+(chartmargin.left)+",0)")
         .append('rect')
         .attr('x',(chartwidth/3+5)*2)
@@ -406,7 +399,7 @@ div.annotation {
         .text("test")
         ;
 
-    var IndependentText = d3.select('#region')
+    var ChinaText = d3.select('#region')
         .append("g").attr("transform", "translate("+chartmargin.left+",0)")
         .append('text')
         .attr('x',(chartwidth/3+5)*2+chartwidth/6)
@@ -419,250 +412,109 @@ div.annotation {
         .text("China")
         ;
 
-    // Scenes
-    var scene = 0
-    var annottext = {
-    0: "Welcome! Click through this handy guide to help you navigate this chart." + "<br/>" + "<br/>" +"Each line on this chart represents a single auto insurance powertrain.  Each point marks the change in market share from the first year displayed to the year represented by the point."+ "<br/>" + "<br/>" +"Lets find out which powertrain grew the fastest since 2010." + "<br/>" + "<br/>" + "[CLICK TO ADVANCE TO NEXT STEP]",
-    1: "Use the sliders below to select the beginning year as 2010 and, if you choose, select an ending year to measure the change in market share."+ "<br/>" + "[CLICK TO ADVANCE TO NEXT STEP]",
-    2: "Click the respective boxes above to include or exclude companies by distribution model.  A color-filled box means companies with that distribution model are displayed.  In this example, we chose to remove Independent companies."+ "<br/>" + "<br/>" +"[CLICK TO ADVANCE TO NEXT STEP]",
-    3: "Hover mouse over points to drill into the details!"+ "<br/>" + "<br/>" + "Here we learn how many percentage points Berkshire Hathaway (aka GEICO) has grown its market share from 2010 to 2016, and its total written premium in 2016." +  "<br/>" + "<br/>" +"[CLICK TO EXIT GUIDE AND EXPLORE ON YOUR OWN!]",
-    4: "All Done"}
-    var annotXpos = {
-    0: 275,
-    1: 250,
-    2: 300,
-    3: 350,
-    4: 0}
-    var annotYpos = {
-    0: 100,
-    1: 475,
-    2: 640,
-    3: 100,
-    4: 0} 
-    var annotwidth = {
-    0: 350,
-    1: 700,
-    2: 600,
-    3: 350,
-    4: 0}
-    var annotheight = {
-    0: 140,
-    1: 40,
-    2: 70,
-    3: 100,
-    4: 0}
+    intialize_scene(); 
 
-    var sceneannotation = d3.select("body").append("div") 
-        .attr("class", "annotation")
-        .style("opacity", 0.8)
-        .style("width", annotwidth[scene] + "px")
-      .style("height", annotheight[scene] + "px")
-        .style("left", annotXpos[scene] + "px")   
-        .style("top", annotYpos[scene] + "px")
-        .html(annottext[scene])
-        .on('click', function(event){
-        nextscene();})
-        ;    
+
+    const regionannotations = [
+      {
+        note: {
+          label: "Click these buttons to include/exclude regions from chart.",
+          title: "Button",
+          wrap: 250,  // try something smaller to see text split in several lines
+        },
+        color: ["violet"],
+        x: 1000,
+        y: 0,
+        dx: 30,
+        dy: 30
+      }
+    ]
+
+    // Add annotation to the chart
+    const makeregionAnnotations = d3.annotation().annotations(regionannotations)
+    d3.select('#chart')
+      .append("g")
+      .call(makeregionAnnotations)
+
+    const sliderannotations = [
+      {
+        note: {
+          label: "Use the sliders to compare sales in different years.",
+          title: "Slider",
+          wrap: 250,  // try something smaller to see text split in several lines
+        },
+        color: ["violet"],
+        x: 1000,
+        y: 500,
+        dx: 30,
+        dy: -100
+      }
+    ]
+
+    // Add annotation to the chart
+    const makesliderAnnotations = d3.annotation().annotations(sliderannotations)
+    d3.select('#chart')
+      .append("g")
+      .call(makesliderAnnotations)
         
-     // plot sample for tooltip scene
-    function tooltipscene(yearMin, yearMax, regions) {
 
-      datafilter = data.filter(function(d){ return (d.year >= yearMin && d.year <= yearMax && regions.indexOf(d.region) >= 0) });
-
-      dataminyear = data.filter(function(d){ return d.year == yearMin});
-
-      var datachart = leftjoin(dataminyear, datafilter, "powertrain", "powertrain", function(main, min) {
-          return {
-              year: main.year,
-              powertrain: main.powertrain,
-              sales_value: main.sales_value,
-              region: main.region
-          };
-      });
-
-      //console.log(datachart.filter(function(d){ return d.powertrain == "State Farm"}));
-
-      var chgMax = d3.max(datachart, function(d) { return d.sales_value; }), 
-          chgMin = d3.min(datachart, function(d) { return d.sales_value; })
-
-      ScaleX = d3.scaleLinear().domain([yearMin, yearMax]).range([0, chartwidth])
-      ScaleY = d3.scaleLinear().domain([chgMin/100-0.003, chgMax/100]).range([chartheight, 0])
-
-     datatooltip = datachart.filter(function(d){ return (d.year == 2016 && d.region == 'World') });
-     
-      d3.select('body').select('#chart')
-       .append("g").attr("transform", "translate("+chartmargin.left+","+chartmargin.top+")")
-       .selectAll().data(datatooltip).enter().append('circle')
-       .attr('cx',function(d, i) {return ScaleX(d.year);})
-       .attr('cy', function(d, i) {return ScaleY(d.sales_value);})
-       .attr('r', function(d, i) {return ScaleR(d.sales_value);})
-       .style('opacity',0.9)
-       .raise()
-       .attr("fill", "#FCFF33")
-      .transition().duration(400)
-       .attr('r', 11).style('opacity',1);
-       
-       //console.log(datatooltip[0].sales_value)
-       
-       tooltipoffset_adj = 25
-       
-       // tool tip
-      d3.select('body').select('#chart')
-       .append("g").attr("transform", "translate("+chartmargin.left+","+chartmargin.top+")")
-        .append('rect')
-        .attr('x',ScaleX(datatooltip[0].year))
-        .attr('y',ScaleY(datatooltip[0].sales_value)-tooltipoffset_y+tooltipoffset_adj)
-        .attr('width',160)
-        .attr('height',55)
-        .attr("rx", 10)
-        .attr("ry", 10)
-        .style('fill','#636466')
-        //.style("stroke", "#636466")
-        .style("opacity", 0.4);
-        
-       d3.select('body').select('#chart')
-       .append("g").attr("transform", "translate("+chartmargin.left+","+chartmargin.top+")")
-       .append('text')
-        .attr("font-size", 12)
-        .attr('x',ScaleX(datatooltip[0].year))
-        .attr('y',ScaleY(datatooltip[0].sales_value)-tooltipoffset_y+tooltipoffset_adj)
-        .attr("dy", "1.1em")
-        .attr("dx", "0.2em")
-        .attr("fill", "#f8f8f8")
-        .attr("font-family", "sans-serif")
-        .attr("font-weight", 400)
-        .style('opacity',0.9)
-        .raise()
-        .text(datatooltip[0].powertrain)
-        
-     d3.select('body').select('#chart')
-       .append("g").attr("transform", "translate("+chartmargin.left+","+chartmargin.top+")")
-       .append('text')
-        .attr("font-size", 12)
-        .attr('x',ScaleX(datatooltip[0].year))
-        .attr('y',ScaleY(datatooltip[0].sales_value)-tooltipoffset_y+tooltipoffset_adj)
-        .attr("dy", "2.1em")
-        .attr("dx", "0.2em")
-        .attr("fill", "#f8f8f8")
-        .attr("font-family", "sans-serif")
-        .attr("font-weight", 400)
-        .style("opacity", 0.9)
-        .text(datatooltip[0].year);
-        
-     d3.select('body').select('#chart')
-       .append("g").attr("transform", "translate("+chartmargin.left+","+chartmargin.top+")")
-       .append('text')
-        .attr("font-size", 12)
-        .attr('x',ScaleX(datatooltip[0].year))
-        .attr('y',ScaleY(datatooltip[0].sales_value)-tooltipoffset_y+tooltipoffset_adj)
-        .attr("dy", "3.1em")
-        .attr("dx", "0.2em")
-        .attr("fill", '#f8f8f8')
-        .attr("font-family", "sans-serif")
-        .attr("font-weight", 400)
-        .style("opacity", 0.9)
-        .text("Written Premium: " + d3.format("$.1f")(datatooltip[0].sales_value/1000000) + "B");
-        
-     d3.select('body').select('#chart')
-       .append("g").attr("transform", "translate("+chartmargin.left+","+chartmargin.top+")")
-       .append('text')
-        .attr("font-size", 12)
-        .attr('x',ScaleX(datatooltip[0].year))
-        .attr('y',ScaleY(datatooltip[0].sales_value)-tooltipoffset_y+tooltipoffset_adj)
-        .attr("dy", "4.1em")
-        .attr("dx", "0.2em")
-        .attr("fill", "#f8f8f8")
-        .attr("font-family", "sans-serif")
-        .attr("font-weight", 400)
-        .style("opacity", 0.9)
-        .text("Market Share Change: " + d3.format(".1%")(datatooltip[0].sales_value));  
-       
-    }
-
-
-        
-    //sceneannotation.on('click', function(event){
-    //    sceneannotation.html("test");});
-
-    function nextscene(){
-     scene = scene + 1
-
-     sceneannotation.style("width", annotwidth[scene] + "px")
-        .style("height", annotheight[scene] + "px")
-        .style("left", annotXpos[scene] + "px")   
-        .style("top", annotYpos[scene] + "px")
-        .html(annottext[scene])
-
-     
-     if (scene == 1){slideryear.value([2010, 2018])
-            //.on('onchange', (val) => {d3.select(this).value([2010, 2018]);});
-      displayChart(2010, 2018, initregions, "off")
-         ;}
-     if (scene == 2){
-       IndependentStatus = [IndependentStatus[1], IndependentStatus[0]]
-       IndependentColor = [IndependentColor[1], IndependentColor[0]]
-       Independent.style("fill",IndependentColor[0])
-       updateregions()
-       displayChart(inityearMin, inityearMax, initregions, "off");}
-     if (scene == 3){tooltipscene(inityearMin, inityearMax, initregions);}
-     if (scene == 4){
-       sceneannotation.style("opacity", 0)
+    function intialize_scene() {
        slideryear.value([2011, 2021])
-       IndependentStatus = [IndependentStatus[1], IndependentStatus[0]]
-       IndependentColor = [IndependentColor[1], IndependentColor[0]]
-       Independent.style("fill",IndependentColor[0])
+       USAStatus = [USAStatus[1], USAStatus[0]]
+       USAColor = [USAColor[1], USAColor[0]]
+       USA.style("fill",USAColor[0])
+
+       ChinaStatus = [ChinaStatus[1], ChinaStatus[0]]
+       ChinaColor = [ChinaColor[1], ChinaColor[0]]
+       China.style("fill",ChinaColor[0])
        updateregions()
        slideryear.on('onchange', (val) => {
         inityearMax = val[1], inityearMin = val[0]
         displayChart(inityearMin, inityearMax, initregions, "on"); })
-       Captive.on('click', function() {
-          CaptiveStatus = [CaptiveStatus[1], CaptiveStatus[0]]
-          CaptiveColor = [CaptiveColor[1], CaptiveColor[0]]
-          d3.select(this).style("fill",CaptiveColor[0])
+       World.on('click', function() {
+          WorldStatus = [WorldStatus[1], WorldStatus[0]]
+          WorldColor = [WorldColor[1], WorldColor[0]]
+          d3.select(this).style("fill",WorldColor[0])
           updateregions()
           displayChart(inityearMin, inityearMax, initregions, "on")
         ; })
-       CaptiveText.on('click', function() {
-          CaptiveStatus = [CaptiveStatus[1], CaptiveStatus[0]]
-          CaptiveColor = [CaptiveColor[1], CaptiveColor[0]]
-          Captive.style("fill",CaptiveColor[0])
+       WorldText.on('click', function() {
+          WorldStatus = [WorldStatus[1], WorldStatus[0]]
+          WorldColor = [WorldColor[1], WorldColor[0]]
+          World.style("fill",WorldColor[0])
           updateregions()
           displayChart(inityearMin, inityearMax, initregions, "on")
         ; })
-       Direct.on('click', function() {
-          DirectStatus = [DirectStatus[1], DirectStatus[0]]
-          DirectColor = [DirectColor[1], DirectColor[0]]
-          d3.select(this).style("fill",DirectColor[0])
+       USA.on('click', function() {
+          USAStatus = [USAStatus[1], USAStatus[0]]
+          USAColor = [USAColor[1], USAColor[0]]
+          d3.select(this).style("fill",USAColor[0])
           updateregions()
           displayChart(inityearMin, inityearMax, initregions, "on")
         ; })
-       DirectText.on('click', function() {
-          DirectStatus = [DirectStatus[1], DirectStatus[0]]
-          DirectColor = [DirectColor[1], DirectColor[0]]
-          Direct.style("fill",DirectColor[0])
+       USAText.on('click', function() {
+          USAStatus = [USAStatus[1], USAStatus[0]]
+          USAColor = [USAColor[1], USAColor[0]]
+          USA.style("fill",USAColor[0])
           updateregions()
           displayChart(inityearMin, inityearMax, initregions, "on")
         ; })
-       Independent.on('click', function() {
-          IndependentStatus = [IndependentStatus[1], IndependentStatus[0]]
-          IndependentColor = [IndependentColor[1], IndependentColor[0]]
-          d3.select(this).style("fill",IndependentColor[0])
+       China.on('click', function() {
+          ChinaStatus = [ChinaStatus[1], ChinaStatus[0]]
+          ChinaColor = [ChinaColor[1], ChinaColor[0]]
+          d3.select(this).style("fill",ChinaColor[0])
           updateregions()
           displayChart(inityearMin, inityearMax, initregions, "on")
         ; })
-       IndependentText.on('click', function() {
-          IndependentStatus = [IndependentStatus[1], IndependentStatus[0]]
-          IndependentColor = [IndependentColor[1], IndependentColor[0]]
-          Independent.style("fill",IndependentColor[0])
+       ChinaText.on('click', function() {
+          ChinaStatus = [ChinaStatus[1], ChinaStatus[0]]
+          ChinaColor = [ChinaColor[1], ChinaColor[0]]
+          China.style("fill",ChinaColor[0])
           updateregions()
           displayChart(inityearMin, inityearMax, initregions, "on")
         ; })
        displayChart(inityearMin, inityearMax, initregions, "on")
-     
-     ;}
     ; }
-
-
     }
 
   </script>
